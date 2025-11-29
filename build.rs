@@ -28,7 +28,7 @@ impl GurobiLibAffixes {
     }
 }
 
-const DEFAULT_AFFIXES: GurobiLibAffixes = GurobiLibAffixes {
+const LINUX_AFFIXES: GurobiLibAffixes = GurobiLibAffixes {
     prefix: "libgurobi",
     suffix: ".so",
 };
@@ -38,11 +38,22 @@ const WINDOWS_AFFIXES: GurobiLibAffixes = GurobiLibAffixes {
     suffix: ".lib",
 };
 
+const MACOS_AFFIXES: GurobiLibAffixes = GurobiLibAffixes {
+    prefix: "libgurobi",
+    suffix: ".dylib",
+};
+
 fn match_path_for_libname(filename: &OsStr) -> Option<String> {
-    let affixes = if cfg!(windows) {
-        WINDOWS_AFFIXES
-    } else {
-        DEFAULT_AFFIXES
+    // Get target OS
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+    // Select affixes based on target OS
+    let affixes = match target_os.as_str() {
+        "linux" => LINUX_AFFIXES,
+        "macos" => MACOS_AFFIXES,
+        "windows" => WINDOWS_AFFIXES,
+        _ => {
+            panic!("Unsupported target OS: {}", target_os);
+        }
     };
     affixes.match_path_for_libname(filename)
 }
@@ -126,7 +137,7 @@ mod tests {
             ("libgurobi990_light.so", None),
             ("libGurobiJni95.so", None),
         ] {
-            let result = DEFAULT_AFFIXES.match_path_for_libname(name.as_ref());
+            let result = LINUX_AFFIXES.match_path_for_libname(name.as_ref());
             assert_eq!(result.as_deref(), expected);
         }
     }
